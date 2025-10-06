@@ -273,15 +273,15 @@ const ClientInterface = ({ etablissementId }) => {
           <div className="bg-gray-900 border rounded-lg p-4 mb-6" style={{ borderColor: '#00FF41' }}>
             <div className="flex justify-between mb-2" style={{ color: '#00FF41' }}>
               <span>Sous-total</span>
-              <span className="font-bold">{subtotal.toFixed(2)}€</span>
+              <span className="font-bold">{subtotal.toFixed(2)}$</span>
             </div>
             <div className="flex justify-between mb-2" style={{ color: '#00FF41' }}>
               <span>Pourboire</span>
-              <span className="font-bold">{tipAmount.toFixed(2)}€</span>
+              <span className="font-bold">{tipAmount.toFixed(2)}$</span>
             </div>
             <div className="border-t pt-2 mt-2 flex justify-between text-xl" style={{ borderColor: '#00FF41', color: '#00FF41' }}>
               <span className="font-bold">TOTAL</span>
-              <span className="font-bold">{total.toFixed(2)}€</span>
+              <span className="font-bold">{total.toFixed(2)}$</span>
             </div>
           </div>
 
@@ -298,34 +298,34 @@ const ClientInterface = ({ etablissementId }) => {
               className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
               style={{ borderColor: '#00FF41', color: '#00FF41' }}
             >
-              5% ({(subtotal * 0.05).toFixed(2)}€)
+              5% ({(subtotal * 0.05).toFixed(2)}$)
             </button>
             <button
               onClick={() => selectTipPercentage(10)}
               className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
               style={{ borderColor: '#00FF41', color: '#00FF41' }}
             >
-              10% ({(subtotal * 0.10).toFixed(2)}€)
+              10% ({(subtotal * 0.10).toFixed(2)}$)
             </button>
             <button
               onClick={() => selectTipPercentage(15)}
               className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
               style={{ borderColor: '#00FF41', color: '#00FF41' }}
             >
-              15% ({(subtotal * 0.15).toFixed(2)}€)
+              15% ({(subtotal * 0.15).toFixed(2)}$)
             </button>
             <button
               onClick={() => selectTipPercentage(20)}
               className="py-3 rounded-lg font-bold bg-gray-900 border col-span-2 hover:bg-gray-700"
               style={{ borderColor: '#00FF41', color: '#00FF41' }}
             >
-              20% ({(subtotal * 0.20).toFixed(2)}€)
+              20% ({(subtotal * 0.20).toFixed(2)}$)
             </button>
           </div>
 
           <div className="mb-6">
             <label className="block mb-2 text-sm" style={{ color: '#00FF41' }}>
-              Montant personnalisé (€)
+              Montant personnalisé ($)
             </label>
             <input
               type="number"
@@ -410,7 +410,7 @@ const ClientInterface = ({ etablissementId }) => {
               <div className="text-6xl mb-12 neon-text-pulse">🔔</div>
               <div className="text-5xl font-bold mb-8 neon-text-pulse">Commande Prête !</div>
               <div className="text-3xl mb-6 neon-text-pulse">Numéro: #{currentOrder.number}</div>
-              <div className="text-2xl mb-8 neon-text-pulse">Total: {currentOrder.total.toFixed(2)}€</div>
+              <div className="text-2xl mb-8 neon-text-pulse">Total: {currentOrder.total.toFixed(2)}$</div>
               <div className="text-xl neon-text-pulse">Récupérer au comptoir</div>
             </>
           ) : (
@@ -418,7 +418,7 @@ const ClientInterface = ({ etablissementId }) => {
               <div className="text-6xl mb-12 neon-text-static">✓</div>
               <div className="text-5xl font-bold mb-8 neon-text-static">Commande Envoyée !</div>
               <div className="text-3xl mb-6 neon-text-static">Numéro: #{currentOrder.number}</div>
-              <div className="text-2xl mb-8 neon-text-static">Total: {currentOrder.total.toFixed(2)}€</div>
+              <div className="text-2xl mb-8 neon-text-static">Total: {currentOrder.total.toFixed(2)}$</div>
               <div className="text-lg neon-text-static">
                 Vous recevrez une notification<br />quand votre commande sera prête
               </div>
@@ -452,7 +452,7 @@ const ClientInterface = ({ etablissementId }) => {
         {menu.map(item => (
           <div key={item.id} className="flex items-center py-3 border-b border-gray-800">
             <span className="font-mono flex-1" style={{ color: '#00FF41' }}>{item.name}</span>
-            <span className="font-mono w-24 text-right" style={{ color: '#00FF41' }}>{item.price.toFixed(2)}€</span>
+            <span className="font-mono w-24 text-right" style={{ color: '#00FF41' }}>{item.price.toFixed(2)}$</span>
             <input
               type="number"
               min="0"
@@ -472,7 +472,7 @@ const ClientInterface = ({ etablissementId }) => {
           <div className="max-w-2xl mx-auto">
             <div className="flex justify-between mb-3 text-lg" style={{ color: '#00FF41' }}>
               <span>{getTotalItems()} article(s)</span>
-              <span className="font-bold">{getTotalPrice().toFixed(2)}€</span>
+              <span className="font-bold">{getTotalPrice().toFixed(2)}$</span>
             </div>
             <button
               onClick={handleValidate}
@@ -556,14 +556,14 @@ const TabletInterface = ({ etablissementId }) => {
                 </div>
                 {order.items.map((item, i) => (
                   <div key={i} className="text-sm mb-1">
-                    • {item.quantity}x {item.name} - {(item.price * item.quantity).toFixed(2)}€
+                    • {item.quantity}x {item.name} - {(item.price * item.quantity).toFixed(2)}$
                   </div>
                 ))}
                 <div className="mt-2 pt-2 border-t font-bold" style={{ borderColor: '#00FF41' }}>
-                  TOTAL: {order.total.toFixed(2)}€
+                  TOTAL: {order.total.toFixed(2)}$
                   {order.tip > 0 && (
                     <div className="text-xs text-gray-400 font-normal mt-1">
-                      (dont {order.tip.toFixed(2)}€ de pourboire)
+                      (dont {order.tip.toFixed(2)}$ de pourboire)
                     </div>
                   )}
                 </div>
@@ -601,10 +601,10 @@ const TabletInterface = ({ etablissementId }) => {
                   </div>
                 ))}
                 <div className="mt-2 pt-2 border-t font-bold" style={{ borderColor: '#00FF41' }}>
-                  TOTAL: {order.total.toFixed(2)}€
+                  TOTAL: {order.total.toFixed(2)}$
                   {order.tip > 0 && (
                     <div className="text-xs text-gray-400 font-normal mt-1">
-                      (dont {order.tip.toFixed(2)}€ de pourboire)
+                      (dont {order.tip.toFixed(2)}$ de pourboire)
                     </div>
                   )}
                 </div>
