@@ -451,8 +451,9 @@ const ClientInterface = ({ etablissementId }) => {
               type="number"
               min="0"
               max="20"
-              value={quantities[item.id] || ''}
+              value={quantities[item.id] || 0}
               onChange={(e) => handleQuantityChange(item.id, e.target.value)}
+              onFocus={(e) => e.target.select()}
               disabled={hasActiveOrder}
               className="w-16 bg-black border text-center py-1 font-mono ml-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ borderColor: '#00FF41', color: '#00FF41' }}
