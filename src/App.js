@@ -294,20 +294,6 @@ const ClientInterface = ({ etablissementId }) => {
               Aucun
             </button>
             <button
-              onClick={() => selectTipPercentage(5)}
-              className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
-              style={{ borderColor: '#00FF41', color: '#00FF41' }}
-            >
-              5% ({(subtotal * 0.05).toFixed(2)}$)
-            </button>
-            <button
-              onClick={() => selectTipPercentage(10)}
-              className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
-              style={{ borderColor: '#00FF41', color: '#00FF41' }}
-            >
-              10% ({(subtotal * 0.10).toFixed(2)}$)
-            </button>
-            <button
               onClick={() => selectTipPercentage(15)}
               className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
               style={{ borderColor: '#00FF41', color: '#00FF41' }}
@@ -316,11 +302,19 @@ const ClientInterface = ({ etablissementId }) => {
             </button>
             <button
               onClick={() => selectTipPercentage(20)}
-              className="py-3 rounded-lg font-bold bg-gray-900 border col-span-2 hover:bg-gray-700"
+              className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
               style={{ borderColor: '#00FF41', color: '#00FF41' }}
             >
               20% ({(subtotal * 0.20).toFixed(2)}$)
             </button>
+            <button
+              onClick={() => selectTipPercentage(25)}
+              className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
+              style={{ borderColor: '#00FF41', color: '#00FF41' }}
+            >
+              25% ({(subtotal * 0.25).toFixed(2)}$)
+            </button>
+            
           </div>
 
           <div className="mb-6">
