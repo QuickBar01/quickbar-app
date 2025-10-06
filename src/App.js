@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Check } from 'lucide-react';
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
@@ -100,8 +101,10 @@ const ClientInterface = ({ etablissementId }) => {
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
   const [menu, setMenu] = useState([]);
   const [currentOrder, setCurrentOrder] = useState(null);
+  const [showTipScreen, setShowTipScreen] = useState(false);
+  const [tipAmount, setTipAmount] = useState(0);
+  const [customTip, setCustomTip] = useState('');
 
-  // Charger le menu depuis Firebase
   useEffect(() => {
     const q = query(
       collection(db, 'etablissements', etablissementId, 'menu'),
@@ -121,7 +124,6 @@ const ClientInterface = ({ etablissementId }) => {
     return () => unsubscribe();
   }, [etablissementId]);
 
-  // Restaurer la commande en cours depuis localStorage au démarrage
   useEffect(() => {
     const savedOrderNumber = localStorage.getItem(`currentOrderNumber_${etablissementId}`);
     const savedOrderId = localStorage.getItem(`currentOrderId_${etablissementId}`);
@@ -134,7 +136,6 @@ const ClientInterface = ({ etablissementId }) => {
     }
   }, [etablissementId]);
 
-  // 🔥 CORRECTION CRITIQUE : Écoute Firebase en temps réel pour la commande active
   useEffect(() => {
     if (!currentOrderId) return;
 
@@ -145,12 +146,10 @@ const ClientInterface = ({ etablissementId }) => {
         const orderData = { id: docSnap.id, ...docSnap.data() };
         setCurrentOrder(orderData);
         
-        // Si la commande est prête, afficher la notification
         if (orderData.status === 'ready') {
           setShowCart(true);
         }
       } else {
-        // La commande a été supprimée (livrée)
         localStorage.removeItem(`currentOrderNumber_${etablissementId}`);
         localStorage.removeItem(`currentOrderId_${etablissementId}`);
         setCurrentOrder(null);
@@ -189,7 +188,20 @@ const ClientInterface = ({ etablissementId }) => {
     }, 0);
   };
 
-  const handleValidate = async () => {
+  const selectTipPercentage = (percentage) => {
+    const subtotal = getTotalPrice();
+    const tip = (subtotal * percentage) / 100;
+    setTipAmount(Number(tip.toFixed(2)));
+    setCustomTip('');
+  };
+
+  const handleCustomTipChange = (value) => {
+    setCustomTip(value);
+    const numValue = parseFloat(value) || 0;
+    setTipAmount(Number(numValue.toFixed(2)));
+  };
+
+  const handleValidate = () => {
     const orderItems = Object.entries(quantities)
       .filter(([_, qty]) => qty > 0)
       .map(([id, qty]) => {
@@ -202,13 +214,27 @@ const ClientInterface = ({ etablissementId }) => {
       return;
     }
 
+    setShowTipScreen(true);
+  };
+
+  const confirmOrderWithTip = async () => {
+    const orderItems = Object.entries(quantities)
+      .filter(([_, qty]) => qty > 0)
+      .map(([id, qty]) => {
+        const item = menu.find(m => m.id === id);
+        return { ...item, quantity: qty };
+      });
+
     const newOrderNumber = Date.now().toString().slice(-6);
-    const total = getTotalPrice();
+    const subtotal = getTotalPrice();
+    const total = subtotal + tipAmount;
 
     const newOrder = {
       number: newOrderNumber,
       items: orderItems,
-      total,
+      subtotal: Number(subtotal.toFixed(2)),
+      tip: tipAmount,
+      total: Number(total.toFixed(2)),
       status: 'pending',
       timestamp: new Date().toISOString()
     };
@@ -219,7 +245,6 @@ const ClientInterface = ({ etablissementId }) => {
         newOrder
       );
       
-      // Sauvegarder dans localStorage pour persistance
       localStorage.setItem(`currentOrderNumber_${etablissementId}`, newOrderNumber);
       localStorage.setItem(`currentOrderId_${etablissementId}`, docRef.id);
 
@@ -227,13 +252,117 @@ const ClientInterface = ({ etablissementId }) => {
       setCurrentOrderId(docRef.id);
       setHasActiveOrder(true);
       setShowCart(true);
+      setShowTipScreen(false);
     } catch (error) {
       console.error('Erreur création commande:', error);
       alert('Erreur lors de la création de la commande');
     }
   };
 
-  // Écran d'attente (commande en préparation, pas de notification)
+  if (showTipScreen) {
+    const subtotal = getTotalPrice();
+    const total = subtotal + tipAmount;
+
+    return (
+      <div className="min-h-screen bg-black p-4 flex items-center justify-center">
+        <div className="max-w-md w-full">
+          <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: '#00FF41' }}>
+            Ajouter un pourboire ?
+          </h2>
+
+          <div className="bg-gray-900 border rounded-lg p-4 mb-6" style={{ borderColor: '#00FF41' }}>
+            <div className="flex justify-between mb-2" style={{ color: '#00FF41' }}>
+              <span>Sous-total</span>
+              <span className="font-bold">{subtotal.toFixed(2)}€</span>
+            </div>
+            <div className="flex justify-between mb-2" style={{ color: '#00FF41' }}>
+              <span>Pourboire</span>
+              <span className="font-bold">{tipAmount.toFixed(2)}€</span>
+            </div>
+            <div className="border-t pt-2 mt-2 flex justify-between text-xl" style={{ borderColor: '#00FF41', color: '#00FF41' }}>
+              <span className="font-bold">TOTAL</span>
+              <span className="font-bold">{total.toFixed(2)}€</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <button
+              onClick={() => selectTipPercentage(0)}
+              className={`py-3 rounded-lg font-bold border ${tipAmount === 0 && customTip === '' ? 'bg-gray-700' : 'bg-gray-900'}`}
+              style={{ borderColor: '#00FF41', color: '#00FF41' }}
+            >
+              Aucun
+            </button>
+            <button
+              onClick={() => selectTipPercentage(5)}
+              className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
+              style={{ borderColor: '#00FF41', color: '#00FF41' }}
+            >
+              5% ({(subtotal * 0.05).toFixed(2)}€)
+            </button>
+            <button
+              onClick={() => selectTipPercentage(10)}
+              className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
+              style={{ borderColor: '#00FF41', color: '#00FF41' }}
+            >
+              10% ({(subtotal * 0.10).toFixed(2)}€)
+            </button>
+            <button
+              onClick={() => selectTipPercentage(15)}
+              className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
+              style={{ borderColor: '#00FF41', color: '#00FF41' }}
+            >
+              15% ({(subtotal * 0.15).toFixed(2)}€)
+            </button>
+            <button
+              onClick={() => selectTipPercentage(20)}
+              className="py-3 rounded-lg font-bold bg-gray-900 border col-span-2 hover:bg-gray-700"
+              style={{ borderColor: '#00FF41', color: '#00FF41' }}
+            >
+              20% ({(subtotal * 0.20).toFixed(2)}€)
+            </button>
+          </div>
+
+          <div className="mb-6">
+            <label className="block mb-2 text-sm" style={{ color: '#00FF41' }}>
+              Montant personnalisé (€)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={customTip}
+              onChange={(e) => handleCustomTipChange(e.target.value)}
+              placeholder="0.00"
+              className="w-full bg-black border p-3 rounded-lg text-center text-xl font-mono"
+              style={{ borderColor: '#00FF41', color: '#00FF41' }}
+            />
+          </div>
+
+          <button
+            onClick={confirmOrderWithTip}
+            className="w-full py-4 rounded-lg font-bold text-lg mb-3 hover:opacity-80"
+            style={{ backgroundColor: '#00FF41', color: '#000000' }}
+          >
+            CONFIRMER LA COMMANDE
+          </button>
+
+          <button
+            onClick={() => {
+              setShowTipScreen(false);
+              setTipAmount(0);
+              setCustomTip('');
+            }}
+            className="w-full py-3 rounded-lg border hover:bg-gray-900"
+            style={{ borderColor: '#00FF41', color: '#00FF41' }}
+          >
+            Retour
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (hasActiveOrder && !showCart) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-black">
@@ -250,7 +379,6 @@ const ClientInterface = ({ etablissementId }) => {
     );
   }
 
-  // Écran de confirmation / notification
   if (showCart && currentOrder) {
     const isReady = currentOrder.status === 'ready';
 
@@ -301,7 +429,6 @@ const ClientInterface = ({ etablissementId }) => {
     );
   }
 
-  // Écran de chargement
   if (menu.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
@@ -313,7 +440,6 @@ const ClientInterface = ({ etablissementId }) => {
     );
   }
 
-  // Menu principal
   return (
     <div className="min-h-screen bg-black">
       <div className="sticky top-0 bg-black border-b p-4 z-10" style={{ borderColor: '#00FF41' }}>
@@ -435,6 +561,11 @@ const TabletInterface = ({ etablissementId }) => {
                 ))}
                 <div className="mt-2 pt-2 border-t font-bold" style={{ borderColor: '#00FF41' }}>
                   TOTAL: {order.total.toFixed(2)}€
+                  {order.tip > 0 && (
+                    <div className="text-xs text-gray-400 font-normal mt-1">
+                      (dont {order.tip.toFixed(2)}€ de pourboire)
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => markAsReady(order.id)}
@@ -471,6 +602,11 @@ const TabletInterface = ({ etablissementId }) => {
                 ))}
                 <div className="mt-2 pt-2 border-t font-bold" style={{ borderColor: '#00FF41' }}>
                   TOTAL: {order.total.toFixed(2)}€
+                  {order.tip > 0 && (
+                    <div className="text-xs text-gray-400 font-normal mt-1">
+                      (dont {order.tip.toFixed(2)}€ de pourboire)
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => deleteOrder(order.id)}
