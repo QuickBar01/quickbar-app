@@ -451,7 +451,7 @@ const ClientInterface = ({ etablissementId }) => {
               type="number"
               min="0"
               max="20"
-              value={quantities[item.id] || 0}
+              value={quantities[item.id] || ''}
               onChange={(e) => handleQuantityChange(item.id, e.target.value)}
               disabled={hasActiveOrder}
               className="w-16 bg-black border text-center py-1 font-mono ml-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
