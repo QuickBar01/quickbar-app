@@ -1,13 +1,55 @@
-
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Check } from 'lucide-react';
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Login from './components/Login';
+import AdminInterface from './components/AdminInterface';
 
-const RestaurantOrderSystem = () => {
+// Wrapper pour la logique principale avec auth
+const RestaurantOrderSystemWithAuth = () => {
+  const { user, loading } = useAuth();
   const pathParts = window.location.pathname.split('/').filter(p => p);
-  const etablissementId = pathParts[0] || 'demo';
-  const page = pathParts[1] || 'client';
+  const firstPart = pathParts[0] || 'demo';
+  const secondPart = pathParts[1] || '';
+  
+  // Routes admin
+  if (firstPart === 'admin') {
+    // Si loading, afficher un loader
+    if (loading) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <div className="text-xl font-mono" style={{ color: '#00FF41' }}>
+            Chargement...
+          </div>
+        </div>
+      );
+    }
+    
+    // Route /admin/login
+    if (secondPart === 'login') {
+      // Si déjà connecté, rediriger vers /admin
+      if (user) {
+        window.location.href = '/admin';
+        return null;
+      }
+      return <Login onLoginSuccess={() => window.location.href = '/admin'} />;
+    }
+    
+    // Route /admin (et autres sous-routes admin)
+    // Si pas connecté, rediriger vers login
+    if (!user) {
+      window.location.href = '/admin/login';
+      return null;
+    }
+    
+    // Si connecté, afficher l'interface admin
+    return <AdminInterface />;
+  }
+  
+  // Routes publiques (client/tablette)
+  const etablissementId = firstPart;
+  const page = secondPart;
   
   if (page === 'tablette') {
     return <TabletInterface etablissementId={etablissementId} />;
@@ -17,13 +59,19 @@ const RestaurantOrderSystem = () => {
     return <StartPage etablissementId={etablissementId} />;
   }
   
-  if (etablissementId === 'admin') {
-    return <AdminInterface />;
-  }
-  
   return <ClientInterface etablissementId={etablissementId} />;
 };
 
+// Composant principal avec AuthProvider
+const RestaurantOrderSystem = () => {
+  return (
+    <AuthProvider>
+      <RestaurantOrderSystemWithAuth />
+    </AuthProvider>
+  );
+};
+
+// StartPage Component (inchangé)
 const StartPage = ({ etablissementId }) => {
   const [connected, setConnected] = useState(false);
   const [wifiInfo, setWifiInfo] = useState({ ssid: 'Chargement...', password: '...' });
@@ -93,6 +141,7 @@ const StartPage = ({ etablissementId }) => {
   );
 };
 
+// ClientInterface Component (inchangé)
 const ClientInterface = ({ etablissementId }) => {
   const [quantities, setQuantities] = useState({});
   const [currentOrderNumber, setCurrentOrderNumber] = useState(null);
@@ -273,15 +322,15 @@ const ClientInterface = ({ etablissementId }) => {
           <div className="bg-gray-900 border rounded-lg p-4 mb-6" style={{ borderColor: '#00FF41' }}>
             <div className="flex justify-between mb-2" style={{ color: '#00FF41' }}>
               <span>Sous-total</span>
-              <span className="font-bold">{subtotal.toFixed(2)}$</span>
+              <span className="font-bold">{subtotal.toFixed(2)}€</span>
             </div>
             <div className="flex justify-between mb-2" style={{ color: '#00FF41' }}>
               <span>Pourboire</span>
-              <span className="font-bold">{tipAmount.toFixed(2)}$</span>
+              <span className="font-bold">{tipAmount.toFixed(2)}€</span>
             </div>
             <div className="border-t pt-2 mt-2 flex justify-between text-xl" style={{ borderColor: '#00FF41', color: '#00FF41' }}>
               <span className="font-bold">TOTAL</span>
-              <span className="font-bold">{total.toFixed(2)}$</span>
+              <span className="font-bold">{total.toFixed(2)}€</span>
             </div>
           </div>
 
@@ -294,43 +343,48 @@ const ClientInterface = ({ etablissementId }) => {
               Aucun
             </button>
             <button
+              onClick={() => selectTipPercentage(5)}
+              className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
+              style={{ borderColor: '#00FF41', color: '#00FF41' }}
+            >
+              5% ({(subtotal * 0.05).toFixed(2)}€)
+            </button>
+            <button
+              onClick={() => selectTipPercentage(10)}
+              className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
+              style={{ borderColor: '#00FF41', color: '#00FF41' }}
+            >
+              10% ({(subtotal * 0.10).toFixed(2)}€)
+            </button>
+            <button
               onClick={() => selectTipPercentage(15)}
               className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
               style={{ borderColor: '#00FF41', color: '#00FF41' }}
             >
-              15% ({(subtotal * 0.15).toFixed(2)}$)
+              15% ({(subtotal * 0.15).toFixed(2)}€)
             </button>
             <button
               onClick={() => selectTipPercentage(20)}
               className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
               style={{ borderColor: '#00FF41', color: '#00FF41' }}
             >
-              20% ({(subtotal * 0.20).toFixed(2)}$)
+              20% ({(subtotal * 0.20).toFixed(2)}€)
             </button>
-            <button
-              onClick={() => selectTipPercentage(25)}
-              className="py-3 rounded-lg font-bold bg-gray-900 border hover:bg-gray-700"
-              style={{ borderColor: '#00FF41', color: '#00FF41' }}
-            >
-              25% ({(subtotal * 0.25).toFixed(2)}$)
-            </button>
-            
-          </div>
-
-          <div className="mb-6">
-            <label className="block mb-2 text-sm" style={{ color: '#00FF41' }}>
-              Montant personnalisé ($)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={customTip}
-              onChange={(e) => handleCustomTipChange(e.target.value)}
-              placeholder="0.00"
-              className="w-full bg-black border p-3 rounded-lg text-center text-xl font-mono"
-              style={{ borderColor: '#00FF41', color: '#00FF41' }}
-            />
+            <div className="relative">
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={customTip}
+                onChange={(e) => handleCustomTipChange(e.target.value)}
+                placeholder="Montant"
+                className="w-full bg-black border p-3 rounded-lg text-center font-mono"
+                style={{ borderColor: '#00FF41', color: '#00FF41' }}
+              />
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <span style={{ color: '#00FF41' }}>€</span>
+              </div>
+            </div>
           </div>
 
           <button
@@ -404,7 +458,7 @@ const ClientInterface = ({ etablissementId }) => {
               <div className="text-6xl mb-12 neon-text-pulse">🔔</div>
               <div className="text-5xl font-bold mb-8 neon-text-pulse">Commande Prête !</div>
               <div className="text-3xl mb-6 neon-text-pulse">Numéro: #{currentOrder.number}</div>
-              <div className="text-2xl mb-8 neon-text-pulse">Total: {currentOrder.total.toFixed(2)}$</div>
+              <div className="text-2xl mb-8 neon-text-pulse">Total: {currentOrder.total.toFixed(2)}€</div>
               <div className="text-xl neon-text-pulse">Récupérer au comptoir</div>
             </>
           ) : (
@@ -412,7 +466,7 @@ const ClientInterface = ({ etablissementId }) => {
               <div className="text-6xl mb-12 neon-text-static">✓</div>
               <div className="text-5xl font-bold mb-8 neon-text-static">Commande Envoyée !</div>
               <div className="text-3xl mb-6 neon-text-static">Numéro: #{currentOrder.number}</div>
-              <div className="text-2xl mb-8 neon-text-static">Total: {currentOrder.total.toFixed(2)}$</div>
+              <div className="text-2xl mb-8 neon-text-static">Total: {currentOrder.total.toFixed(2)}€</div>
               <div className="text-lg neon-text-static">
                 Vous recevrez une notification<br />quand votre commande sera prête
               </div>
@@ -446,7 +500,7 @@ const ClientInterface = ({ etablissementId }) => {
         {menu.map(item => (
           <div key={item.id} className="flex items-center py-3 border-b border-gray-800">
             <span className="font-mono flex-1" style={{ color: '#00FF41' }}>{item.name}</span>
-            <span className="font-mono w-24 text-right" style={{ color: '#00FF41' }}>{item.price.toFixed(2)}$</span>
+            <span className="font-mono w-24 text-right" style={{ color: '#00FF41' }}>{item.price.toFixed(2)}€</span>
             <input
               type="number"
               min="0"
@@ -467,7 +521,7 @@ const ClientInterface = ({ etablissementId }) => {
           <div className="max-w-2xl mx-auto">
             <div className="flex justify-between mb-3 text-lg" style={{ color: '#00FF41' }}>
               <span>{getTotalItems()} article(s)</span>
-              <span className="font-bold">{getTotalPrice().toFixed(2)}$</span>
+              <span className="font-bold">{getTotalPrice().toFixed(2)}€</span>
             </div>
             <button
               onClick={handleValidate}
@@ -484,6 +538,7 @@ const ClientInterface = ({ etablissementId }) => {
   );
 };
 
+// TabletInterface Component (inchangé)
 const TabletInterface = ({ etablissementId }) => {
   const [orders, setOrders] = useState([]);
 
@@ -551,14 +606,14 @@ const TabletInterface = ({ etablissementId }) => {
                 </div>
                 {order.items.map((item, i) => (
                   <div key={i} className="text-sm mb-1">
-                    • {item.quantity}x {item.name} - {(item.price * item.quantity).toFixed(2)}$
+                    • {item.quantity}x {item.name} - {(item.price * item.quantity).toFixed(2)}€
                   </div>
                 ))}
                 <div className="mt-2 pt-2 border-t font-bold" style={{ borderColor: '#00FF41' }}>
-                  TOTAL: {order.total.toFixed(2)}$
+                  TOTAL: {order.total.toFixed(2)}€
                   {order.tip > 0 && (
                     <div className="text-xs text-gray-400 font-normal mt-1">
-                      (dont {order.tip.toFixed(2)}$ de pourboire)
+                      (dont {order.tip.toFixed(2)}€ de pourboire)
                     </div>
                   )}
                 </div>
@@ -596,10 +651,10 @@ const TabletInterface = ({ etablissementId }) => {
                   </div>
                 ))}
                 <div className="mt-2 pt-2 border-t font-bold" style={{ borderColor: '#00FF41' }}>
-                  TOTAL: {order.total.toFixed(2)}$
+                  TOTAL: {order.total.toFixed(2)}€
                   {order.tip > 0 && (
                     <div className="text-xs text-gray-400 font-normal mt-1">
-                      (dont {order.tip.toFixed(2)}$ de pourboire)
+                      (dont {order.tip.toFixed(2)}€ de pourboire)
                     </div>
                   )}
                 </div>
@@ -612,110 +667,6 @@ const TabletInterface = ({ etablissementId }) => {
               </div>
             ))
           )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const AdminInterface = () => {
-  const [etablissements, setEtablissements] = useState({});
-  const [newEtabId, setNewEtabId] = useState('');
-  const [newEtabName, setNewEtabName] = useState('');
-  
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('etablissements') || '{}');
-    setEtablissements(stored);
-  }, []);
-  
-  const saveEtablissements = (data) => {
-    localStorage.setItem('etablissements', JSON.stringify(data));
-    setEtablissements(data);
-  };
-  
-  const createEtablissement = () => {
-    if (!newEtabId || !newEtabName) {
-      alert('ID et nom requis');
-      return;
-    }
-    
-    const newEtab = {
-      id: newEtabId,
-      nom: newEtabName,
-      wifi_ssid: 'WiFi-' + newEtabName,
-      wifi_password: 'password123',
-      menu: [
-        { id: 1, name: 'Burger Classic', price: 12.50 },
-        { id: 2, name: 'Pizza Margherita', price: 14.00 },
-        { id: 3, name: 'Coca-Cola', price: 3.00 }
-      ]
-    };
-    
-    const updated = { ...etablissements, [newEtabId]: newEtab };
-    saveEtablissements(updated);
-    setNewEtabId('');
-    setNewEtabName('');
-  };
-  
-  return (
-    <div className="min-h-screen bg-black p-8" style={{ color: '#00FF41' }}>
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Interface Administration</h1>
-        
-        <div className="mb-8 p-6 border rounded" style={{ borderColor: '#00FF41' }}>
-          <h2 className="text-xl mb-4">Créer un établissement</h2>
-          <div className="space-y-4">
-            <input
-              type="text"
-              placeholder="ID (ex: club-paradise)"
-              value={newEtabId}
-              onChange={(e) => setNewEtabId(e.target.value)}
-              className="w-full bg-gray-900 border p-2 rounded"
-              style={{ borderColor: '#00FF41', color: '#00FF41' }}
-            />
-            <input
-              type="text"
-              placeholder="Nom (ex: Club Paradise)"
-              value={newEtabName}
-              onChange={(e) => setNewEtabName(e.target.value)}
-              className="w-full bg-gray-900 border p-2 rounded"
-              style={{ borderColor: '#00FF41', color: '#00FF41' }}
-            />
-            <button
-              onClick={createEtablissement}
-              className="px-6 py-2 rounded font-bold hover:opacity-80"
-              style={{ backgroundColor: '#00FF41', color: '#000000' }}
-            >
-              Créer
-            </button>
-          </div>
-        </div>
-        
-        <div className="p-6 border rounded" style={{ borderColor: '#00FF41' }}>
-          <h2 className="text-xl mb-4">Établissements existants ({Object.keys(etablissements).length})</h2>
-          {Object.values(etablissements).map(etab => (
-            <div key={etab.id} className="mb-4 p-4 bg-gray-900 border rounded" style={{ borderColor: '#00FF41' }}>
-              <div className="font-bold">{etab.nom} ({etab.id})</div>
-              <div className="text-sm text-gray-400">WiFi: {etab.wifi_ssid} / {etab.wifi_password}</div>
-              <div className="text-sm text-gray-400">{etab.menu.length} items au menu</div>
-              <div className="mt-2 space-x-2">
-                <a 
-                  href={`/${etab.id}/start`} 
-                  className="text-sm underline"
-                  style={{ color: '#00FF41' }}
-                >
-                  Page client
-                </a>
-                <a 
-                  href={`/${etab.id}/tablette`} 
-                  className="text-sm underline"
-                  style={{ color: '#00FF41' }}
-                >
-                  Tablette
-                </a>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>

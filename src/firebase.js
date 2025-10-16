@@ -1,8 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  // REMPLACER par votre vraie config Firebase récupérée plus tôt
   apiKey: "AIzaSyBxcUWhfCubVScAN2jyL3AVrwW1dhX7mZ4",
   authDomain: "quickbarsnclub.firebaseapp.com",
   projectId: "quickbarsnclub",
@@ -13,3 +13,4 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+export const auth = getAuth(app);
