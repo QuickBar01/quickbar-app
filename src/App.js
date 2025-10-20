@@ -50,15 +50,62 @@ const RestaurantOrderSystemWithAuth = () => {
   // Routes publiques (client/tablette)
   const etablissementId = firstPart;
   const page = secondPart;
-  
+
+  // Route tablette (PROTÉGÉE - nécessite authentification)
   if (page === 'tablette') {
+    // Si loading, afficher un loader
+    if (loading) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <div className="text-xl font-mono" style={{ color: '#00FF41' }}>
+            Chargement...
+          </div>
+        </div>
+      );
+    }
+
+    // Si pas connecté, afficher écran d'accès réservé
+    if (!user) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+          <div className="max-w-md text-center">
+            <div className="text-6xl mb-8" style={{ color: '#00FF41' }}>🔒</div>
+            <div className="text-3xl font-bold mb-4" style={{ color: '#00FF41' }}>
+              Accès Réservé
+            </div>
+            <div className="text-lg text-gray-400 mb-8">
+              Cette page est réservée au personnel.
+              <br />
+              Veuillez vous connecter pour continuer.
+            </div>
+            <a
+              href="/admin/login"
+              className="inline-block px-8 py-4 rounded-lg font-bold text-lg hover:opacity-80"
+              style={{ backgroundColor: '#00FF41', color: '#000000' }}
+            >
+              SE CONNECTER
+            </a>
+            <div className="mt-6">
+              <a
+                href={`/${etablissementId}`}
+                className="text-gray-500 hover:text-gray-300 text-sm"
+              >
+                ← Retour au menu client
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Si connecté, afficher la tablette
     return <TabletInterface etablissementId={etablissementId} />;
   }
-  
+
   if (page === 'start') {
     return <StartPage etablissementId={etablissementId} />;
   }
-  
+
   return <ClientInterface etablissementId={etablissementId} />;
 };
 
@@ -153,13 +200,37 @@ const ClientInterface = ({ etablissementId }) => {
   const [showTipScreen, setShowTipScreen] = useState(false);
   const [tipAmount, setTipAmount] = useState(0);
   const [customTip, setCustomTip] = useState('');
+  // ============================================
+  // PHASE 2.5 : STOP/START COMMANDES
+  // ============================================
+  const [ordersOpen, setOrdersOpen] = useState(true);
+  const [checkingOrdersOpen, setCheckingOrdersOpen] = useState(true);
+
+  // Écoute en temps réel du statut ordersOpen
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      doc(db, 'etablissements', etablissementId),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setOrdersOpen(docSnap.data().ordersOpen ?? true);
+        }
+        setCheckingOrdersOpen(false);
+      },
+      (error) => {
+        console.error('Erreur écoute ordersOpen:', error);
+        setCheckingOrdersOpen(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [etablissementId]);
 
   useEffect(() => {
     const q = query(
       collection(db, 'etablissements', etablissementId, 'menu'),
       orderBy('name')
     );
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const menuItems = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -169,7 +240,7 @@ const ClientInterface = ({ etablissementId }) => {
     }, (error) => {
       console.error('Erreur chargement menu:', error);
     });
-    
+
     return () => unsubscribe();
   }, [etablissementId]);
 
@@ -307,6 +378,65 @@ const ClientInterface = ({ etablissementId }) => {
       alert('Erreur lors de la création de la commande');
     }
   };
+
+  // ÉCRAN DE BLOCAGE SI COMMANDES FERMÉES
+  if (checkingOrdersOpen) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-black">
+        <div className="text-center">
+          <div className="text-4xl mb-4 animate-pulse" style={{ color: '#00FF41' }}>
+            ⏳
+          </div>
+          <div className="text-xl font-mono" style={{ color: '#00FF41' }}>
+            Vérification disponibilité...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!ordersOpen && !hasActiveOrder) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-black">
+        <div className="max-w-md text-center">
+          {/* Icône */}
+          <div className="text-6xl mb-8 text-red-500">
+            🛑
+          </div>
+
+          {/* Message principal */}
+          <div className="text-3xl font-bold text-red-500 mb-4">
+            Commandes temporairement fermées
+          </div>
+
+          {/* Message secondaire */}
+          <div className="text-lg text-gray-400 mb-8">
+            Nous avons trop de demandes en cours.
+            <br />
+            Veuillez réessayer dans quelques minutes.
+          </div>
+
+          {/* Bouton réessayer */}
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg font-bold text-lg mb-4"
+          >
+            RÉESSAYER
+          </button>
+
+          {/* Lien retour */}
+          <div className="mt-6">
+            <a
+              href={`/${etablissementId}/start`}
+              className="text-gray-500 hover:text-gray-300 text-sm"
+            >
+              ← Retour
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (showTipScreen) {
     const subtotal = getTotalPrice();
@@ -492,6 +622,15 @@ const ClientInterface = ({ etablissementId }) => {
     <div className="min-h-screen bg-black">
       <div className="sticky top-0 bg-black border-b p-4 z-10" style={{ borderColor: '#00FF41' }}>
         <div className="max-w-2xl mx-auto">
+          {/* Badge status commandes */}
+          {!ordersOpen && (
+            <div className="mb-3 p-2 bg-red-900 border border-red-500 rounded text-center">
+              <span className="text-red-400 text-sm font-bold">
+                ⚠️ Commandes fermées - Consultation uniquement
+              </span>
+            </div>
+          )}
+
           <div className="text-xl font-bold" style={{ color: '#00FF41' }}>MENU</div>
         </div>
       </div>
@@ -508,7 +647,7 @@ const ClientInterface = ({ etablissementId }) => {
               value={quantities[item.id] || 0}
               onChange={(e) => handleQuantityChange(item.id, e.target.value)}
               onFocus={(e) => e.target.select()}
-              disabled={hasActiveOrder}
+              disabled={hasActiveOrder || !ordersOpen}
               className="w-16 bg-black border text-center py-1 font-mono ml-8 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ borderColor: '#00FF41', color: '#00FF41' }}
             />
@@ -541,13 +680,52 @@ const ClientInterface = ({ etablissementId }) => {
 // TabletInterface Component (inchangé)
 const TabletInterface = ({ etablissementId }) => {
   const [orders, setOrders] = useState([]);
+  // ============================================
+  // PHASE 2.5 : STOP/START COMMANDES
+  // ============================================
+  const [ordersOpen, setOrdersOpen] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // Écoute en temps réel du statut ordersOpen + initialisation
+  useEffect(() => {
+    const initializeOrdersOpen = async () => {
+      const etablissementRef = doc(db, 'etablissements', etablissementId);
+      const docSnap = await getDoc(etablissementRef);
+
+      // Si le document existe mais n'a pas le champ ordersOpen, l'initialiser
+      if (docSnap.exists() && docSnap.data().ordersOpen === undefined) {
+        try {
+          await updateDoc(etablissementRef, { ordersOpen: true });
+          console.log('Champ ordersOpen initialisé à true');
+        } catch (error) {
+          console.error('Erreur initialisation ordersOpen:', error);
+        }
+      }
+    };
+
+    initializeOrdersOpen();
+
+    const unsubscribe = onSnapshot(
+      doc(db, 'etablissements', etablissementId),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          setOrdersOpen(docSnap.data().ordersOpen ?? true);
+        }
+      },
+      (error) => {
+        console.error('Erreur écoute ordersOpen:', error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [etablissementId]);
 
   useEffect(() => {
     const q = query(
       collection(db, 'etablissements', etablissementId, 'commandes'),
       orderBy('timestamp', 'desc')
     );
-    
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const ordersData = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -556,7 +734,7 @@ const TabletInterface = ({ etablissementId }) => {
       }));
       setOrders(ordersData);
     });
-    
+
     return () => unsubscribe();
   }, [etablissementId]);
 
@@ -581,6 +759,34 @@ const TabletInterface = ({ etablissementId }) => {
     }
   };
 
+  // Toggle pour ouvrir/fermer les commandes
+  const toggleOrdersOpen = async () => {
+    setIsUpdating(true);
+
+    try {
+      const etablissementRef = doc(db, 'etablissements', etablissementId);
+
+      // Vérifier que le document existe
+      const docSnap = await getDoc(etablissementRef);
+      if (!docSnap.exists()) {
+        throw new Error(`L'établissement ${etablissementId} n'existe pas`);
+      }
+
+      await updateDoc(etablissementRef, {
+        ordersOpen: !ordersOpen,
+        lastUpdated: new Date().toISOString()
+      });
+
+      console.log(`Commandes ${!ordersOpen ? 'ouvertes' : 'fermées'} avec succès`);
+    } catch (error) {
+      console.error('Erreur toggle ordersOpen:', error);
+      console.error('Détails erreur:', error.message);
+      alert(`Erreur lors du changement de statut: ${error.message}`);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const pendingOrders = orders.filter(o => o.status === 'pending');
   const readyOrders = orders.filter(o => o.status === 'ready');
 
@@ -588,6 +794,54 @@ const TabletInterface = ({ etablissementId }) => {
     <div className="min-h-screen bg-black p-8" style={{ color: '#00FF41' }}>
       <div className="mb-4 border-b pb-2" style={{ borderColor: '#00FF41' }}>
         <div className="text-xl">TABLETTE RESTAURANT - {etablissementId}</div>
+      </div>
+
+      {/* HEADER AVEC TOGGLE ORDERSOPEN */}
+      <div className="mb-6 p-4 border rounded" style={{ borderColor: '#00FF41' }}>
+        <div className="flex items-center justify-between mb-4">
+          {/* Status Badge */}
+          <div className="flex items-center gap-3">
+            <div className={`text-2xl ${ordersOpen ? 'text-green-400' : 'text-red-500'}`}>
+              {ordersOpen ? '🟢' : '🔴'}
+            </div>
+            <div>
+              <div className={`text-lg font-bold ${ordersOpen ? 'text-green-400' : 'text-red-500'}`}>
+                Commandes {ordersOpen ? 'OUVERTES' : 'FERMÉES'}
+              </div>
+              <div className="text-xs text-gray-500">
+                {ordersOpen ? 'Les clients peuvent commander' : 'Nouvelles commandes bloquées'}
+              </div>
+            </div>
+          </div>
+
+          {/* Toggle Button */}
+          <button
+            onClick={toggleOrdersOpen}
+            disabled={isUpdating}
+            className={`px-6 py-3 rounded font-bold transition-colors ${
+              ordersOpen
+                ? 'bg-red-600 hover:bg-red-700 text-white'
+                : 'bg-green-600 hover:bg-green-700 text-white'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {isUpdating ? 'Chargement...' : (ordersOpen ? 'FERMER LES COMMANDES' : 'OUVRIR LES COMMANDES')}
+          </button>
+        </div>
+
+        {/* Compteur de commandes avec code couleur */}
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400">Commandes en attente :</span>
+          <span className={`text-xl font-bold ${
+            pendingOrders.length < 5 ? 'text-white' :
+            pendingOrders.length < 10 ? 'text-yellow-500' :
+            'text-red-500 animate-pulse'
+          }`}>
+            {pendingOrders.length}
+          </span>
+          {pendingOrders.length >= 10 && (
+            <span className="text-red-500 text-sm font-bold">⚠️ ALERTE SURCHARGE</span>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
