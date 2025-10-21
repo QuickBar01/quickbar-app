@@ -128,10 +128,36 @@ const RestaurantOrderSystemWithAuth = () => {
       );
     }
 
-    // Si pas connecté, rediriger vers login
+    // Si pas connecté, afficher écran de connexion requis
     if (!user) {
-      window.location.href = '/admin/login';
-      return null;
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+          <div className="max-w-md text-center">
+            <div className="text-6xl mb-8" style={{ color: '#00FF41' }}>🔒</div>
+            <div className="text-3xl font-bold mb-4" style={{ color: '#00FF41' }}>
+              Connexion Requise
+            </div>
+            <div className="text-lg text-gray-400 mb-8">
+              Vous devez être connecté pour accéder à l'interface admin de cet établissement.
+            </div>
+            <a
+              href="/admin/login"
+              className="inline-block px-8 py-4 rounded-lg font-bold text-lg hover:opacity-80 mb-4"
+              style={{ backgroundColor: '#00FF41', color: '#000000' }}
+            >
+              SE CONNECTER
+            </a>
+            <div className="mt-6">
+              <a
+                href={`/${etablissementId}`}
+                className="text-gray-500 hover:text-gray-300 text-sm"
+              >
+                ← Retour au menu client
+              </a>
+            </div>
+          </div>
+        </div>
+      );
     }
 
     // Si connecté, afficher ClubAdminInterface

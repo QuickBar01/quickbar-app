@@ -5,7 +5,7 @@ import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 
 const SuperAdminInterface = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { isSuperAdmin, userRole, displayName, loading: roleLoading, reloadRole } = useRole();
   const [clubs, setClubs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,9 +44,14 @@ const SuperAdminInterface = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm('Voulez-vous vous déconnecter ?')) {
-      window.location.href = '/admin/login';
+      const result = await logout();
+      if (result.success) {
+        window.location.href = '/admin/login';
+      } else {
+        alert('Erreur lors de la déconnexion');
+      }
     }
   };
 
@@ -84,10 +89,13 @@ const SuperAdminInterface = () => {
               🔄 Recharger les permissions
             </button>
             <button
-              onClick={() => window.location.href = '/admin/login'}
+              onClick={async () => {
+                await logout();
+                window.location.href = '/admin/login';
+              }}
               className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded font-bold"
             >
-              Retour Login
+              Se déconnecter
             </button>
           </div>
         </div>

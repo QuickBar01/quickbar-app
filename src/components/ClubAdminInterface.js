@@ -4,12 +4,17 @@ import { useRole } from '../contexts/RoleContext';
 import MenuManager from './MenuManager';
 
 const ClubAdminInterface = ({ clubId }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { canAccessClub, isSuperAdmin, loading } = useRole();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm('Voulez-vous vous déconnecter ?')) {
-      window.location.href = '/admin/login';
+      const result = await logout();
+      if (result.success) {
+        window.location.href = '/admin/login';
+      } else {
+        alert('Erreur lors de la déconnexion');
+      }
     }
   };
 
@@ -27,20 +32,40 @@ const ClubAdminInterface = ({ clubId }) => {
   if (!canAccessClub(clubId)) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="text-6xl mb-4">🚫</div>
-          <div className="text-2xl font-bold mb-4" style={{ color: '#00FF41' }}>
+        <div className="max-w-md text-center">
+          <div className="text-6xl mb-8">🚫</div>
+          <div className="text-3xl font-bold mb-4" style={{ color: '#00FF41' }}>
             Accès Refusé
           </div>
-          <div className="text-gray-400 mb-6">
-            Vous n'avez pas les permissions pour accéder à ce club.
+          <div className="text-lg text-gray-400 mb-4">
+            Vous n'avez pas les permissions pour accéder à l'administration de <strong className="text-white">{clubId}</strong>.
           </div>
-          <button
-            onClick={() => window.location.href = '/admin'}
-            className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded font-bold"
-          >
-            Retour Admin
-          </button>
+          <div className="text-sm text-gray-500 mb-8">
+            Connecté en tant que : {user?.email}
+          </div>
+          <div className="flex flex-col gap-3">
+            {isSuperAdmin() && (
+              <a
+                href="/admin"
+                className="px-8 py-4 rounded-lg font-bold text-lg hover:opacity-80"
+                style={{ backgroundColor: '#00FF41', color: '#000000' }}
+              >
+                ← Retour Dashboard
+              </a>
+            )}
+            <button
+              onClick={handleLogout}
+              className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold text-lg"
+            >
+              Se déconnecter
+            </button>
+            <a
+              href={`/${clubId}`}
+              className="text-gray-500 hover:text-gray-300 text-sm mt-4"
+            >
+              ← Retour au menu client
+            </a>
+          </div>
         </div>
       </div>
     );
