@@ -46,45 +46,41 @@ const RestaurantOrderSystemWithAuth = () => {
       return <Login onLoginSuccess={() => window.location.href = '/admin'} />;
     }
 
-    // Route /admin/clubs
-    if (secondPart === 'clubs') {
-      // Si pas connecté, rediriger vers login
+    // Routes /admin/clubs et /admin/users
+    if (secondPart === 'clubs' || secondPart === 'users') {
+      // Si pas connecté, afficher écran connexion requise
       if (!user) {
-        window.location.href = '/admin/login';
-        return null;
-      }
-      return (
-        <div className="min-h-screen bg-black" style={{ color: '#00FF41' }}>
-          <div className="border-b p-4" style={{ borderColor: '#00FF41' }}>
-            <div className="max-w-7xl mx-auto flex justify-between items-center">
-              <div className="text-2xl font-bold">GESTION DES CLUBS</div>
+        return (
+          <div className="min-h-screen bg-black flex items-center justify-center p-4">
+            <div className="max-w-md text-center">
+              <div className="text-6xl mb-8" style={{ color: '#00FF41' }}>🔒</div>
+              <div className="text-3xl font-bold mb-4" style={{ color: '#00FF41' }}>
+                Connexion Requise
+              </div>
+              <div className="text-lg text-gray-400 mb-8">
+                Vous devez être connecté en tant que super-admin pour accéder à cette page.
+              </div>
               <a
-                href="/admin"
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded"
+                href="/admin/login"
+                className="inline-block px-8 py-4 rounded-lg font-bold text-lg hover:opacity-80"
+                style={{ backgroundColor: '#00FF41', color: '#000000' }}
               >
-                ← Retour Dashboard
+                SE CONNECTER
               </a>
             </div>
           </div>
-          <div className="max-w-7xl mx-auto p-6">
-            <ClubsManager />
-          </div>
-        </div>
-      );
-    }
+        );
+      }
 
-    // Route /admin/users
-    if (secondPart === 'users') {
-      // Si pas connecté, rediriger vers login
-      if (!user) {
-        window.location.href = '/admin/login';
-        return null;
-      }
+      // Si connecté, afficher la page appropriée
+      const pageTitle = secondPart === 'clubs' ? 'GESTION DES CLUBS' : 'GESTION DES UTILISATEURS';
+      const PageComponent = secondPart === 'clubs' ? ClubsManager : UsersManager;
+
       return (
         <div className="min-h-screen bg-black" style={{ color: '#00FF41' }}>
           <div className="border-b p-4" style={{ borderColor: '#00FF41' }}>
             <div className="max-w-7xl mx-auto flex justify-between items-center">
-              <div className="text-2xl font-bold">GESTION DES UTILISATEURS</div>
+              <div className="text-2xl font-bold">{pageTitle}</div>
               <a
                 href="/admin"
                 className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded"
@@ -94,17 +90,35 @@ const RestaurantOrderSystemWithAuth = () => {
             </div>
           </div>
           <div className="max-w-7xl mx-auto p-6">
-            <UsersManager />
+            <PageComponent />
           </div>
         </div>
       );
     }
 
     // Route /admin (et autres sous-routes admin)
-    // Si pas connecté, rediriger vers login
+    // Si pas connecté, afficher écran connexion requise
     if (!user) {
-      window.location.href = '/admin/login';
-      return null;
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-4">
+          <div className="max-w-md text-center">
+            <div className="text-6xl mb-8" style={{ color: '#00FF41' }}>🔒</div>
+            <div className="text-3xl font-bold mb-4" style={{ color: '#00FF41' }}>
+              Connexion Requise
+            </div>
+            <div className="text-lg text-gray-400 mb-8">
+              Vous devez être connecté pour accéder à l'administration.
+            </div>
+            <a
+              href="/admin/login"
+              className="inline-block px-8 py-4 rounded-lg font-bold text-lg hover:opacity-80"
+              style={{ backgroundColor: '#00FF41', color: '#000000' }}
+            >
+              SE CONNECTER
+            </a>
+          </div>
+        </div>
+      );
     }
 
     // Si connecté, afficher SuperAdminInterface
@@ -130,6 +144,7 @@ const RestaurantOrderSystemWithAuth = () => {
 
     // Si pas connecté, afficher écran de connexion requis
     if (!user) {
+      const returnUrl = `/${etablissementId}/admin`;
       return (
         <div className="min-h-screen bg-black flex items-center justify-center p-4">
           <div className="max-w-md text-center">
@@ -137,11 +152,14 @@ const RestaurantOrderSystemWithAuth = () => {
             <div className="text-3xl font-bold mb-4" style={{ color: '#00FF41' }}>
               Connexion Requise
             </div>
-            <div className="text-lg text-gray-400 mb-8">
-              Vous devez être connecté pour accéder à l'interface admin de cet établissement.
+            <div className="text-lg text-gray-400 mb-4">
+              Vous devez être connecté pour accéder à l'interface admin de <strong className="text-white">{etablissementId}</strong>.
+            </div>
+            <div className="text-sm text-gray-500 mb-8">
+              Connectez-vous avec un compte ayant accès à cet établissement.
             </div>
             <a
-              href="/admin/login"
+              href={`/admin/login?returnUrl=${encodeURIComponent(returnUrl)}`}
               className="inline-block px-8 py-4 rounded-lg font-bold text-lg hover:opacity-80 mb-4"
               style={{ backgroundColor: '#00FF41', color: '#000000' }}
             >
