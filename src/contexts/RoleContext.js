@@ -23,24 +23,23 @@ export const RoleProvider = ({ children }) => {
 
   const reloadRole = async () => {
     if (!user) {
-      console.log('⚠️ Impossible de recharger : pas d\'utilisateur connecté');
       return;
     }
 
-    console.log('🔄 Rechargement manuel du rôle...');
     setLoading(true);
     setError(null);
 
     try {
       await loadUserRole(0);
-      console.log('✅ Rechargement terminé');
     } catch (err) {
-      console.error('❌ Erreur lors du rechargement:', err);
       setError(err.message);
     }
   };
 
   const loadUserRole = async (retryCount = 0) => {
+    // Toujours mettre loading à true au début
+    setLoading(true);
+
     if (!user) {
       setUserRole(null);
       setClubAccess([]);
@@ -49,18 +48,9 @@ export const RoleProvider = ({ children }) => {
       return;
     }
 
-    setLoading(true);
-
     try {
-      console.log('🔥 Project ID:', db.app.options.projectId);
-      console.log('🆔 UID recherché:', user.uid);
-      console.log('📄 Chemin document:', `users/${user.uid}`);
-      console.log('🔍 Tentative de chargement du rôle pour UID:', user.uid);
       const userDocRef = doc(db, 'users', user.uid);
-      console.log('🔗 Référence complète:', userDocRef.path);
-      console.log('📄 Référence document créée:', userDocRef.path);
       const userDocSnap = await getDoc(userDocRef);
-      console.log('📥 Réponse reçue. Document existe?', userDocSnap.exists());
 
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
@@ -72,32 +62,24 @@ export const RoleProvider = ({ children }) => {
         // Super-admin n'a pas besoin de clubAccess (accès à tout)
         if (role === 'super_admin') {
           setClubAccess([]);
-          console.log('✅ Super Admin chargé:', userData.displayName || user.email);
         } else if (role === 'club_admin') {
           setClubAccess(userData.clubAccess || []);
-          console.log('✅ Admin Club chargé:', userData.displayName, 'Accès:', userData.clubAccess);
         } else {
           setClubAccess([]);
-          console.log('✅ Utilisateur chargé:', userData.displayName, 'Rôle:', role || 'aucun');
         }
         setLoading(false);
       } else {
         // Si le document n'existe pas, considérer comme pas de rôle
-        console.warn('⚠️ Document users/' + user.uid + ' n\'existe pas dans Firestore');
         setUserRole(null);
         setClubAccess([]);
         setDisplayName('');
         setLoading(false);
       }
     } catch (error) {
-      console.error('❌ Erreur chargement rôle utilisateur (tentative ' + (retryCount + 1) + '):', error);
-
       // Retry jusqu'à 3 fois en cas d'erreur réseau
       if (retryCount < 3) {
-        console.log('🔄 Nouvelle tentative dans 2 secondes...');
         setTimeout(() => loadUserRole(retryCount + 1), 2000);
       } else {
-        console.error('❌ Échec après 3 tentatives. Vérifiez votre connexion.');
         setUserRole(null);
         setClubAccess([]);
         setDisplayName('');

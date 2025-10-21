@@ -38,9 +38,17 @@ const RestaurantOrderSystemWithAuth = () => {
 
     // Route /admin/login
     if (secondPart === 'login') {
-      // Si déjà connecté, rediriger vers /admin
+      // Récupérer le returnUrl depuis l'URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const returnUrl = urlParams.get('returnUrl');
+
+      // Si déjà connecté, rediriger selon le returnUrl ou vers /admin
       if (user) {
-        window.location.href = '/admin';
+        if (returnUrl) {
+          window.location.href = returnUrl;
+        } else {
+          window.location.href = '/admin';
+        }
         return null;
       }
       return <Login onLoginSuccess={() => window.location.href = '/admin'} />;

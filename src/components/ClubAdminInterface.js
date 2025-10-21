@@ -11,19 +11,22 @@ const ClubAdminInterface = ({ clubId }) => {
     if (window.confirm('Voulez-vous vous déconnecter ?')) {
       const result = await logout();
       if (result.success) {
-        window.location.href = '/admin/login';
+        // Rediriger vers login avec returnUrl pour revenir à ce club
+        const returnUrl = `/${clubId}/admin`;
+        window.location.href = `/admin/login?returnUrl=${encodeURIComponent(returnUrl)}`;
       } else {
         alert('Erreur lors de la déconnexion');
       }
     }
   };
 
-  // Vérification permissions
-  if (loading) {
+  // IMPORTANT : Attendre que le chargement soit terminé ET que les données soient chargées
+  // Ne pas afficher "Accès Refusé" si on est encore en train de charger
+  if (loading || (user && userRole === null)) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-xl font-mono" style={{ color: '#00FF41' }}>
-          Chargement...
+          Chargement des permissions...
         </div>
       </div>
     );
