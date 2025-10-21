@@ -5,7 +5,7 @@ import MenuManager from './MenuManager';
 
 const ClubAdminInterface = ({ clubId }) => {
   const { user, logout } = useAuth();
-  const { canAccessClub, isSuperAdmin, loading } = useRole();
+  const { canAccessClub, isSuperAdmin, userRole, loading } = useRole();
 
   const handleLogout = async () => {
     if (window.confirm('Voulez-vous vous déconnecter ?')) {
