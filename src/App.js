@@ -3,8 +3,13 @@ import { ShoppingCart, Check } from 'lucide-react';
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { RoleProvider } from './contexts/RoleContext';
 import Login from './components/Login';
-import AdminInterface from './components/AdminInterface';
+import SuperAdminInterface from './components/SuperAdminInterface';
+import ClubAdminInterface from './components/ClubAdminInterface';
+import ClubsManager from './components/ClubsManager';
+import UsersManager from './components/UsersManager';
+import ShowUID from './components/ShowUID';
 
 // Wrapper pour la logique principale avec auth
 const RestaurantOrderSystemWithAuth = () => {
@@ -13,6 +18,11 @@ const RestaurantOrderSystemWithAuth = () => {
   const firstPart = pathParts[0] || 'demo';
   const secondPart = pathParts[1] || '';
   
+  // Route spéciale pour afficher UID (temporaire)
+  if (firstPart === 'show-uid') {
+    return <ShowUID />;
+  }
+
   // Routes admin
   if (firstPart === 'admin') {
     // Si loading, afficher un loader
@@ -25,7 +35,7 @@ const RestaurantOrderSystemWithAuth = () => {
         </div>
       );
     }
-    
+
     // Route /admin/login
     if (secondPart === 'login') {
       // Si déjà connecté, rediriger vers /admin
@@ -35,21 +45,98 @@ const RestaurantOrderSystemWithAuth = () => {
       }
       return <Login onLoginSuccess={() => window.location.href = '/admin'} />;
     }
-    
+
+    // Route /admin/clubs
+    if (secondPart === 'clubs') {
+      // Si pas connecté, rediriger vers login
+      if (!user) {
+        window.location.href = '/admin/login';
+        return null;
+      }
+      return (
+        <div className="min-h-screen bg-black" style={{ color: '#00FF41' }}>
+          <div className="border-b p-4" style={{ borderColor: '#00FF41' }}>
+            <div className="max-w-7xl mx-auto flex justify-between items-center">
+              <div className="text-2xl font-bold">GESTION DES CLUBS</div>
+              <a
+                href="/admin"
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded"
+              >
+                ← Retour Dashboard
+              </a>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto p-6">
+            <ClubsManager />
+          </div>
+        </div>
+      );
+    }
+
+    // Route /admin/users
+    if (secondPart === 'users') {
+      // Si pas connecté, rediriger vers login
+      if (!user) {
+        window.location.href = '/admin/login';
+        return null;
+      }
+      return (
+        <div className="min-h-screen bg-black" style={{ color: '#00FF41' }}>
+          <div className="border-b p-4" style={{ borderColor: '#00FF41' }}>
+            <div className="max-w-7xl mx-auto flex justify-between items-center">
+              <div className="text-2xl font-bold">GESTION DES UTILISATEURS</div>
+              <a
+                href="/admin"
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded"
+              >
+                ← Retour Dashboard
+              </a>
+            </div>
+          </div>
+          <div className="max-w-7xl mx-auto p-6">
+            <UsersManager />
+          </div>
+        </div>
+      );
+    }
+
     // Route /admin (et autres sous-routes admin)
     // Si pas connecté, rediriger vers login
     if (!user) {
       window.location.href = '/admin/login';
       return null;
     }
-    
-    // Si connecté, afficher l'interface admin
-    return <AdminInterface />;
+
+    // Si connecté, afficher SuperAdminInterface
+    return <SuperAdminInterface />;
   }
-  
-  // Routes publiques (client/tablette)
+
+  // Routes publiques et club admin
   const etablissementId = firstPart;
   const page = secondPart;
+
+  // Route /{club-id}/admin (Admin Club)
+  if (page === 'admin') {
+    // Si loading, afficher un loader
+    if (loading) {
+      return (
+        <div className="min-h-screen bg-black flex items-center justify-center">
+          <div className="text-xl font-mono" style={{ color: '#00FF41' }}>
+            Chargement...
+          </div>
+        </div>
+      );
+    }
+
+    // Si pas connecté, rediriger vers login
+    if (!user) {
+      window.location.href = '/admin/login';
+      return null;
+    }
+
+    // Si connecté, afficher ClubAdminInterface
+    return <ClubAdminInterface clubId={etablissementId} />;
+  }
 
   // Route tablette (PROTÉGÉE - nécessite authentification)
   if (page === 'tablette') {
@@ -113,7 +200,9 @@ const RestaurantOrderSystemWithAuth = () => {
 const RestaurantOrderSystem = () => {
   return (
     <AuthProvider>
-      <RestaurantOrderSystemWithAuth />
+      <RoleProvider>
+        <RestaurantOrderSystemWithAuth />
+      </RoleProvider>
     </AuthProvider>
   );
 };
