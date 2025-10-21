@@ -1,8 +1,8 @@
 # 🎯 QUICKBAR - CONTEXTE PROJET POUR CLAUDE CODE
 
-**Date de création** : 20 Octobre 2025  
-**Version actuelle** : v1.0 (MVP 31% complété)  
-**Phase en cours** : Phase 2.5 - Stop/Start Commandes
+**Date de création** : 20 Octobre 2025
+**Version actuelle** : v2.0 (Phase 3 - Multi-établissements complétée)
+**Phase en cours** : Phase 3 TERMINÉE - Prêt pour Phase 4
 
 ---
 
@@ -19,7 +19,7 @@ QuickBar est une application web de commande pour clubs/bars permettant aux clie
 
 ---
 
-## ✅ CE QUI FONCTIONNE DÉJÀ (Phase 1 & 2 - TERMINÉ)
+## ✅ CE QUI FONCTIONNE (Phases 1, 2, 2.5, 3 - TERMINÉES)
 
 ### 1. Authentification Admin (Phase 1) ✅
 - Login/Logout Firebase Auth
@@ -34,7 +34,24 @@ QuickBar est une application web de commande pour clubs/bars permettant aux clie
 - Synchronisation temps réel (onSnapshot)
 - Fichier : `src/components/MenuManager.js`
 
-### 3. Interface Client ✅
+### 3. Stop/Start Commandes (Phase 2.5) ✅
+- Toggle ON/OFF dans interface tablette
+- Écran de blocage client si fermé
+- Synchronisation temps réel via `ordersOpen`
+- Compteur commandes avec code couleur
+- Alerte surcharge (>10 commandes)
+
+### 4. Architecture Multi-Établissements (Phase 3) ✅
+- **Système de rôles** : super_admin, club_admin
+- **RoleContext** : Gestion permissions granulaires
+- **SuperAdminInterface** : Dashboard global à `/admin`
+- **ClubAdminInterface** : Interface admin club à `/{club-id}/admin`
+- **ClubsManager** : CRUD complet clubs à `/admin/clubs`
+- **UsersManager** : CRUD complet utilisateurs à `/admin/users`
+- **ShowUID** : Page `/show-uid` pour récupérer UID Firebase
+- **Permissions** : Super-admin = tous clubs, Club-admin = clubs assignés
+
+### 5. Interface Client ✅
 - Affichage menu depuis Firestore
 - Sélection quantités (0-20)
 - Système pourboire (0%, 5%, 10%, 15%, 20%, custom)
@@ -44,11 +61,12 @@ QuickBar est une application web de commande pour clubs/bars permettant aux clie
 - Blocage nouvelle commande si commande active
 - Routes : `/{etablissement-id}`, `/{etablissement-id}/start`
 
-### 4. Interface Tablette ✅
+### 6. Interface Tablette ✅
 - Vue 2 colonnes : Attente | Prêtes
 - Affichage temps réel commandes
 - Détails : items, quantités, sous-total, pourboire, total
 - Boutons : "Marquer comme prête", "Retirer (Livrée)"
+- Toggle Stop/Start commandes
 - Synchronisation instantanée
 - Route : `/{etablissement-id}/tablette`
 
@@ -58,14 +76,25 @@ QuickBar est une application web de commande pour clubs/bars permettant aux clie
 
 ```
 firestore/
+├── users/ ← NOUVEAU (Phase 3)
+│   └── {uid}/ (ex: "ZeV8UmDJUVRDeTZvHB2JzuAA5FX2")
+│       ├── email: "admin@example.com" (string)
+│       ├── displayName: "Admin Name" (string)
+│       ├── role: "super_admin" | "club_admin" (string)
+│       ├── clubAccess: ["club1", "club2"] (array, optionnel pour club_admin)
+│       ├── createdAt: timestamp (string)
+│       └── updatedAt: timestamp (string)
+│
 └── etablissements/
-    └── {clubId}/ (ex: "club-test")
+    └── {clubId}/ (ex: "club-test", "demo")
         ├── Fields:
         │   ├── actif: true (boolean)
         │   ├── nom: "Club Test" (string)
-        │   ├── ordersOpen: true (boolean) ← NOUVEAU (Phase 2.5)
-        │   ├── wifi_ssid: "WiFi-ClubTest" (string)
-        │   └── wifi_password: "test1234" (string)
+        │   ├── ordersOpen: true (boolean) ← Phase 2.5
+        │   ├── wifiSSID: "WiFi-ClubTest" (string)
+        │   ├── wifiPassword: "test1234" (string)
+        │   ├── createdAt: timestamp (string) ← Phase 3
+        │   └── updatedAt: timestamp (string) ← Phase 3
         │
         ├── menu/ (sous-collection)
         │   └── {auto-id}/ (ex: "lMA7bYsOwIRe1KijpVJc")
@@ -93,7 +122,11 @@ firestore/
                 └── timestamp: "2025-10-20T12:00:00Z" (string)
 ```
 
-**⚠️ IMPORTANT** : Le champ `ordersOpen: true` a été ajouté manuellement dans Firebase Console pour l'établissement `club-test`.
+**✅ NOTES** :
+- Collection `users/` créée pour gérer les permissions multi-établissements
+- Champ `ordersOpen` initialisé automatiquement lors de création club
+- Super-admin n'a pas besoin de `clubAccess` (accès à tout)
+- Club-admin doit avoir au moins 1 club dans `clubAccess`
 
 ---
 
@@ -102,18 +135,23 @@ firestore/
 ```
 quickbar/
 ├── src/
-│   ├── App.js              ← TOUT LE CODE EST ICI (interface client + tablette)
+│   ├── App.js              ← Routing + ClientInterface + TabletInterface + StartPage (~1000 lignes)
 │   ├── firebase.js         ← Config Firebase + exports db, auth
 │   ├── index.js            ← Entry point
 │   ├── index.css           ← Tailwind imports
 │   │
-│   ├── contexts/
-│   │   └── AuthContext.js  ← Gestion état auth
+│   ├── contexts/           ← NOUVEAU (Phase 3)
+│   │   ├── AuthContext.js  ← Gestion état auth
+│   │   └── RoleContext.js  ← Gestion permissions multi-rôles
 │   │
 │   └── components/
-│       ├── Login.js        ← Page login admin
-│       ├── AdminInterface.js ← Interface admin principale
-│       └── MenuManager.js  ← CRUD menu
+│       ├── Login.js                    ← Page login admin
+│       ├── MenuManager.js              ← CRUD menu
+│       ├── SuperAdminInterface.js      ← Dashboard super-admin (/admin)
+│       ├── ClubAdminInterface.js       ← Interface admin club (/{club}/admin)
+│       ├── ClubsManager.js             ← CRUD clubs (/admin/clubs)
+│       ├── UsersManager.js             ← CRUD utilisateurs (/admin/users)
+│       └── ShowUID.js                  ← Affichage UID Firebase (/show-uid)
 │
 ├── public/
 │   └── index.html
@@ -121,10 +159,16 @@ quickbar/
 ├── package.json
 ├── .env                    ← Variables Firebase (NE PAS COMMIT)
 ├── .gitignore
+├── CONTEXT.md              ← Documentation projet (ce fichier)
+├── RAPPORT_PHASE3.md       ← Rapport détaillé Phase 3
 └── README.md
 ```
 
-**⚠️ CRITIQUE** : Le fichier `src/App.js` contient **TOUS** les composants de l'interface client et tablette (ClientInterface, TabletInterface, StartPage, etc.). C'est probablement ~500-600 lignes.
+**📊 STATISTIQUES** :
+- `src/App.js` : ~1000 lignes (ClientInterface, TabletInterface, StartPage, routing)
+- Total composants : 7 fichiers
+- Total contexts : 2 fichiers (Auth + Role)
+- Architecture modulaire et scalable
 
 ---
 
@@ -155,15 +199,23 @@ export const auth = getAuth(app);
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Collection users (Phase 3)
+    match /users/{userId} {
+      allow read: if request.auth.uid == userId;
+      allow write: if request.auth.uid == userId;
+    }
+
+    // Collection etablissements
     match /etablissements/{etablissementId} {
       allow read: if true;
       allow write: if request.auth != null;
-      
+
       match /menu/{menuId} {
         allow read: if true;
         allow write: if request.auth != null;
       }
-      
+
       match /commandes/{commandeId} {
         allow read: if true;
         allow write: if true;  // Clients non-auth peuvent créer commandes
@@ -172,6 +224,11 @@ service cloud.firestore {
   }
 }
 ```
+
+**🔐 SÉCURITÉ** :
+- Collection `users/` : Read/Write uniquement par l'utilisateur concerné
+- Collection `etablissements/` : Lecture publique, écriture auth uniquement
+- Collection `commandes/` : Lecture/écriture publique (pour clients non-auth)
 
 ---
 
@@ -305,20 +362,26 @@ useEffect(() => {
 
 ---
 
-## ⚠️ LIMITATIONS ACTUELLES
+## ⚠️ LIMITATIONS & AMÉLIORATIONS POSSIBLES
 
-### Techniques
-- Pas d'admin interface pour gérer `ordersOpen` (actuellement manuel via Firebase Console)
-- Pas de système multi-établissements (un seul admin global)
-- Pas de dashboard stats
-- Pas d'historique commandes
-- Textes 100% français (pas d'i18n)
+### Fonctionnalités manquantes (Phase 4+)
+- Dashboard analytics/stats avancées
+- Historique commandes avec recherche/filtres
+- Notifications push (Web Push API)
+- Paiement en ligne
+- App mobile native
+- Mode offline
+- Multi-langue (i18n)
+- Export données (CSV, PDF)
+- Personnalisation visuelle par club (logo, couleurs)
 
-### Fonctionnelles
-- Pas de paiement en ligne
-- Pas de notifications push
-- Pas d'app mobile native
-- Pas de mode offline
+### Optimisations techniques possibles
+- Mise en cache des rôles (éviter appel à chaque page)
+- Listener temps réel sur document user (si rôle change)
+- Pagination pour liste clubs (si > 50 clubs)
+- Recherche/filtres dans listes
+- Compression images menu
+- Service Worker pour PWA
 
 ---
 
@@ -361,18 +424,22 @@ npm install [package]
 
 ---
 
-## 🎯 OBJECTIF PHASE 2.5 (ACTUELLE)
+## 🎯 ROUTES DE L'APPLICATION
 
-### Fonctionnalité : Stop/Start Commandes
+### Routes Publiques
+- `/{club-id}` → Interface client (commande)
+- `/{club-id}/start` → Page d'accueil WiFi
 
-**Problème à résoudre** : Le barman est surchargé, il veut pouvoir fermer temporairement les commandes.
+### Routes Protégées (Auth requise)
+- `/admin/login` → Page de connexion
+- `/admin` → SuperAdminInterface (super_admin uniquement)
+- `/admin/clubs` → ClubsManager (super_admin uniquement)
+- `/admin/users` → UsersManager (super_admin uniquement)
+- `/{club-id}/admin` → ClubAdminInterface (permissions vérifiées)
+- `/{club-id}/tablette` → Interface tablette (auth requise)
 
-**Solution** :
-1. Toggle ON/OFF dans interface tablette
-2. Écran de blocage dans interface client si fermé
-3. Synchronisation temps réel via champ `ordersOpen` dans Firestore
-
-**Estimation** : 2-3h
+### Routes Utilitaires
+- `/show-uid` → Affichage UID Firebase (pour setup initial)
 
 ---
 
@@ -417,6 +484,21 @@ Avant toute modification :
 
 ---
 
-**Dernière mise à jour** : 20 Octobre 2025  
-**Version** : 1.0  
-**Pour** : Claude Code - Phase 2.5 Implementation
+---
+
+## 📈 PROGRESSION PROJET
+
+```
+Phase 1 : Authentification Admin         [████████████████████] 100% ✅
+Phase 2 : Gestion Menu CRUD              [████████████████████] 100% ✅
+Phase 2.5 : Stop/Start Commandes         [████████████████████] 100% ✅
+Phase 3 : Multi-Établissements           [████████████████████] 100% ✅
+Phase 4 : Analytics & Avancées           [░░░░░░░░░░░░░░░░░░░░]   0% ⏳
+```
+
+---
+
+**Dernière mise à jour** : 21 Octobre 2025
+**Version** : 2.0 (Phase 3 complétée)
+**Pour** : Claude Code
+**Branche actuelle** : feature/multi-etablissements

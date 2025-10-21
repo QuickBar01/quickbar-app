@@ -9,6 +9,10 @@ const Login = ({ onLoginSuccess }) => {
   const [localError, setLocalError] = useState('');
   const { login, error: authError, setError } = useAuth();
 
+  // Récupérer le returnUrl depuis l'URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const returnUrl = urlParams.get('returnUrl');
+
   // Nettoyer les erreurs au montage du composant
   useEffect(() => {
     setError('');
@@ -17,7 +21,7 @@ const Login = ({ onLoginSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation basique
     if (!email || !password) {
       setLocalError('Veuillez remplir tous les champs');
@@ -28,16 +32,19 @@ const Login = ({ onLoginSuccess }) => {
     setLocalError('');
 
     const result = await login(email, password);
-    
+
     if (result.success) {
-      // Redirection gérée par le parent (App.js)
-      if (onLoginSuccess) {
+      // Si returnUrl existe, rediriger vers cette URL
+      if (returnUrl) {
+        window.location.href = returnUrl;
+      } else if (onLoginSuccess) {
+        // Sinon, utiliser le callback par défaut
         onLoginSuccess();
       }
     } else {
       setLocalError(result.error);
     }
-    
+
     setIsLoading(false);
   };
 
@@ -57,6 +64,14 @@ const Login = ({ onLoginSuccess }) => {
           <div className="text-xl mb-4 font-mono" style={{ color: '#00FF41' }}>
             ╚════════════════════════════════════╝
           </div>
+          {returnUrl && (
+            <div className="mt-4 p-3 border rounded" style={{ borderColor: '#00FF41', backgroundColor: 'rgba(0, 255, 65, 0.1)' }}>
+              <div className="text-xs text-gray-400 mb-1">Redirection après connexion :</div>
+              <div className="text-sm font-mono" style={{ color: '#00FF41' }}>
+                {returnUrl}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Login Form */}
